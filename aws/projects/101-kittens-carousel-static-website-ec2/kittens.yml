@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: templates with Apache Web Server
+
+Resources:
+  
+  LogicalID:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Base ramsey security grup 
+      GroupName: ApacheSG
+      SecurityGroupEgress:
+       - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  Ramseyec204:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: ami-0cebb45b34604efb8
+      InstanceType: t2.micro
+      KeyName: ramsey
+      Tags:
+        - Key: Name
+          Value: ApacheWebEC2
+      UserData: Fn::Base64:
+        !Sub |
+          #! /bin/bash
+          yum update -y 
+          yum install -y httpd
+          DATE_TIME-'date' 
+          cd /var/www/html
+          
+Outputs:
