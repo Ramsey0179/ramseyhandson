@@ -1,37 +1,61 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: templates with Apache Web Server
+Description: This template creates an EC2 instance to run a static website application deployed with Apache Web Server
 
 Resources:
-  
-  LogicalID:
-    Type: "AWS::EC2::SecurityGroup"
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Base ramsey security grup 
-      GroupName: ApacheSG
-      SecurityGroupEgress:
-       - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+      GroupDescription: Allow http to client host
+      GroupName: Apachefg
+      Tags:
+        - Key: Name
+          Value: Apache
+      SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-  Ramseyec204:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0       
+
+  KittensCarouselStaticWebsiteCFInstance:
     Type: "AWS::EC2::Instance"
     Properties:
-      ImageId: ami-0cebb45b34604efb8
+      ImageId: ami-0c94855ba95c71c99
       InstanceType: t2.micro
       KeyName: ramsey
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
       Tags:
         - Key: Name
           Value: ApacheWebEC2
-      UserData: Fn::Base64:
-        !Sub |
-          #! /bin/bash
-          yum update -y 
-          yum install -y httpd
-          DATE_TIME-'date' 
-          cd /var/www/html
-          
+      UserData: 
+        Fn::Base64:
+          !Sub |
+            #! /bin/bash
+            yum update -y
+            yum install -y httpd
+            DATE_TIME=`date`
+            cd /var/www/html
+            wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html
+            wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat0.jpg
+            wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat2.jpg
+            wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat1.jpg
+            systemctl start httpd
+            systemctl enable httpd
 Outputs:
+  InstanceId:
+    Description: InstanceId of the first EC2 instance
+    Value: !Ref KittensCarouselStaticWebsiteCFInstance
+  PublicDNS:
+    Description: Public DNS Name of the EC2 instance
+    Value: !GetAtt 
+      - KittensCarouselStaticWebsiteCFInstance
+      - PublicDnsName
+  PublicIP:
+    Description: Public IP address of the EC2 instance
+    Value: !GetAtt 
+      - KittensCarouselStaticWebsiteCFInstance
+      - PublicIp
