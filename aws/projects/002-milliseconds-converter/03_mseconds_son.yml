@@ -46,11 +46,11 @@ Resources:
         aws ec2 describe-subnets --no-paginate --filters "Name=default-for-az,Values=true" | egrep "(VpcId)|(SubnetId)"
         mkdir milliseconds
         cd milliseconds
-        wget https://raw.githubusercontent.com/mekevinbright/CW-AWS-DEVOPS-WORKING/master/aws/projects/002-milliseconds-converter/milisec_app.py
+        wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/002-milliseconds-converter/000_milisec_app.py
         mkdir templates
         cd templates
-        wget https://raw.githubusercontent.com/mekevinbright/CW-AWS-DEVOPS-WORKING/master/aws/projects/002-milliseconds-converter/templates/index.html
-        wget https://raw.githubusercontent.com/mekevinbright/CW-AWS-DEVOPS-WORKING/master/aws/projects/002-milliseconds-converter/templates/result.html
+        wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/002-milliseconds-converter/templates/index.html
+        wget https://raw.githubusercontent.com/Ramsey0179/ramseyhandson/master/aws/projects/002-milliseconds-converter/templates/result.html
         cd ..
         python3 milisec_app.py
   
