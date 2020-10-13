@@ -9,9 +9,6 @@ Description: >
 Parameters:
   Instance
 
-
-
-
 Resources:
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup

@@ -42,7 +42,6 @@ Resources:
         yum update -y
         yum install python3 -y
         pip3 install flask
-
         aws ec2 describe-subnets --no-paginate --filters "Name=default-for-az,Values=true" | egrep "(VpcId)|(SubnetId)"
         mkdir milliseconds
         cd milliseconds
@@ -127,22 +126,3 @@ Outputs:
       - ''
       - - 'http://'
         - !GetAtt MSPApplicationLoadBalancer.DNSName
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
