@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: 
+  Cloudformation template for The Phonebook Application that aims to create a phonebook application in Python and deployed 
+  as a web application with Flask on AWS Application Load Balancer with Auto Scaling Group of Elastic 
+  Compute Cloud (EC2) Instances and Relational Database Service (RDS) using AWS Cloudformation Service.
+  
+  
+Resources:
+  PBPALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP for ALB #required
+      GroupName: string
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  PBPWebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP for App from ALB #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !GetAtt PBPALBSecurityGroup.GroupId
+
+  PBPWebServerLaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0947d2ba12ee1ff75
+        InstanceType: t2.micro
+        KeyName: k
+        SecurityGroupIds:
+           - !GetAtt PBPWebServerSecurityGroup.GroupId
+        TagSpecifications:
+           - ResourceType: instance
+             Tags:
+               - Key: Name
+                 Value: !Sub Web Server of ${AWS::StackName}
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #! /bin/bash
+                yum update -y
+                yum install python3 -y
+                pip3 install flask
+                pip3 install flask-mysql
+                cd /home/ec2-user
+                cat > dbserver.endpoint <<EOF
+                ${EndpointAddress}
+                EOF
+                wget https://raw.githubusercontent.com/turgout/clarusway-aws-devops-workshop/main/aws/projects/004-phonebook-web-application/phonebook-app.py
+                mkdir templates
+                cd templates
+                wget https://raw.githubusercontent.com/turgout/clarusway-aws-devops-workshop/main/aws/projects/004-phonebook-web-application/templates/index.html
+                wget https://raw.githubusercontent.com/turgout/clarusway-aws-devops-workshop/main/aws/projects/004-phonebook-web-application/templates/delete.html
+                wget https://raw.githubusercontent.com/turgout/clarusway-aws-devops-workshop/main/aws/projects/004-phonebook-web-application/templates/add-update.html
+                cd ..
+                python3 /home/ec2-user/phonebook-app.py
+              - EndpointAddress: !GetAtt PBPRDSDBInstance.Endpoint.Address
+
+  PBPWebServerTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !GetAtt PBPWebServerSecurityGroup.VpcId
+
+  PBPApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt PBPALBSecurityGroup.GroupId
+      Subnets:
+        - subnet-0b6bc52a
+        - subnet-2b433066
+        - subnet-5e11e66f
+        - subnet-89620787
+        - subnet-98bd11c7
+        - subnet-f80cac9e
+      Type: application
+
+  PBPALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+     
+      DefaultActions: #required
+        - TargetGroupArn: !Ref PBPWebServerTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref PBPApplicationLoadBalancer #required
+      Port: 80 #required
+      Protocol: HTTP #required
+
+  PBPWebServerASG:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AutoScalingGroupName: string
+      AvailabilityZones:
+        !GetAZs ""
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref PBPWebServerLaunchTemplate
+        Version: !GetAtt PBPWebServerLaunchTemplate.LatestVersionNumber
+      MaxSize: 3 #required
+      MinSize: 1 #required
+      TargetGroupARNs:
+        - !Ref PBPWebServerTargetGroup
+
+  PBPRDSSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enables HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0  
+
+  PBPRDSDBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      AllocatedStorage: 20 #Conditional
+      DBInstanceClass: db.t2.micro #Yes Required
+      DBName: phonebook    
+      Engine: mysql
+      EngineVersion: 8.0.20   
+      MasterUserPassword: clarusway-1
+      MasterUsername: admin
+      PubliclyAccessible: true
+      StorageType: gp2
+      VPCSecurityGroups: 
+        - !GetAtt PBPRDSSecurityGroup.GroupId
+  
+Outputs:
+  WebsiteURL:
+    Description: The Phonebook Application Load Balancer URL
+    Value: !Sub 
+      - http://${ALBadress}
+      - ALBadress: !GetAtt PBPApplicationLoadBalancer.DNSName
